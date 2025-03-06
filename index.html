@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IDF Rolling 24-Hour Assessment Calculator</title>
+    <title>IDF 24-Hour Assessment Calculator</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         .card {
@@ -13,7 +13,7 @@
 </head>
 <body class="bg-gray-100 min-h-screen p-4">
     <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6">
-        <h1 class="text-2xl font-bold text-blue-700 mb-6">IDF Rolling 24-Hour Assessment Calculator</h1>
+        <h1 class="text-2xl font-bold text-blue-700 mb-6">IDF 24-Hour Assessment Calculator</h1>
         
         <!-- Patient Info -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-blue-50 rounded-lg">
@@ -29,7 +29,7 @@
         
         <!-- Current Status -->
         <div class="mb-6 p-4 bg-blue-50 rounded-lg">
-            <h2 class="text-xl font-semibold text-blue-700 mb-2">Current Rolling 24-Hour Status</h2>
+            <h2 class="text-xl font-semibold text-blue-700 mb-2">Current 24-Hour Status</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
                 <div class="p-3 bg-white rounded shadow">
                     <p class="text-sm text-gray-500">Feedings in Last 24 Hrs</p>
@@ -46,13 +46,13 @@
             </div>
             
             <div id="timeline" class="mt-4 p-3 bg-white rounded hidden">
-                <h3 class="font-medium text-blue-700 mb-2">Last 24 Hours Timeline:</h3>
+                <h3 class="font-medium text-blue-700 mb-2">Recent Scores Timeline:</h3>
                 <div id="timelineContainer" class="flex overflow-x-auto pb-2"></div>
             </div>
             
             <div id="waitingNotice" class="mt-4 p-3 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 hidden">
-                <p class="font-bold">Waiting for Full 24 Hours of Data</p>
-                <p>Need feeding data spanning a full 24-hour period to determine if threshold is met.</p>
+                <p class="font-bold">Collecting 24 Hours of Data</p>
+                <p>Need assessment data spanning a full 24-hour period to determine if threshold is met.</p>
             </div>
             
             <div id="thresholdMet" class="mt-4 p-3 bg-green-100 border-l-4 border-green-500 text-green-700 hidden">
