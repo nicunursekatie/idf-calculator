@@ -198,6 +198,11 @@ document.addEventListener('DOMContentLoaded', function() {
   // ---------------------------
   
   const feedingDateInput = document.getElementById('feedingDate');
+  if (feedingDateInput) {
+    // Format today's date as YYYY-MM-DD, which is what <input type="date"> expects
+    const today = new Date().toISOString().split('T')[0];
+    feedingDateInput.value = today;
+  }
   const feedingTimeSelect = document.getElementById('feedingTime');
   const newScoreSelect = document.getElementById('newScore');
   const addScoreBtn = document.getElementById('addScoreBtn');
