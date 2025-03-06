@@ -1,503 +1,167 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // Unit-specific feeding times
-    const feedingTimeOptions = [
-        // AM times
-        "08:00", "08:30", "09:00", 
-        "11:00", "11:30", "12:00",
-        "14:00", "14:30", "15:00",
-        "17:00", "17:30", "18:00",
-        // PM times
-        "20:00", "20:30", "21:00",
-        "23:00", "23:30", "00:00",
-        "02:00", "02:30", "03:00",
-        "05:00", "05:30", "06:00"
-    ];
-
-    // State variables
-    let readinessScores = [];
-    let thresholdMet = false;
-    let thresholdMetTime = null;
-    let currentPatientMRN = '';
-
-    // DOM elements
-    const patientNameInput = document.getElementById('patientName');
-    const patientMRNInput = document.getElementById('patientMRN');
-    const feedingDateInput = document.getElementById('feedingDate');
-    const feedingTimeSelect = document.getElementById('feedingTime');
-    const newScoreSelect = document.getElementById('newScore');
-    const addScoreBtn = document.getElementById('addScoreBtn');
-    const historyTable = document.getElementById('historyTable');
-    const historyTableBody = document.getElementById('historyTableBody');
-    const noScoresMessage = document.getElementById('noScoresMessage');
-    const totalScoresElement = document.getElementById('totalScores');
-    const goodScoresElement = document.getElementById('goodScores');
-    const percentGoodElement = document.getElementById('percentGood');
-    const timelineElement = document.getElementById('timeline');
-    const timelineContainer = document.getElementById('timelineContainer');
-    const waitingNotice = document.getElementById('waitingNotice');
-    const thresholdMetNotice = document.getElementById('thresholdMet');
-    const thresholdNotMetNotice = document.getElementById('thresholdNotMet');
-    const thresholdMetTimeElement = document.getElementById('thresholdMetTime');
-    const patientSelector = document.getElementById('patientSelector');
-    const loadPatientBtn = document.getElementById('loadPatientBtn');
-    const clearDataBtn = document.getElementById('clearDataBtn');
-
-    // Initialize feeding time options
-    feedingTimeOptions.forEach(time => {
-        const option = document.createElement('option');
-        option.value = time;
-        option.textContent = formatTimeFor12Hour(time);
-        feedingTimeSelect.appendChild(option);
-    });
-
-    // Set default date and time
-    const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
-    feedingDateInput.value = dateStr;
-
-    // Find closest feeding time
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentTimeValue = currentHour * 60 + currentMinute;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDF 24-Hour Assessment Calculator</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .card {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+    <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-2xl font-bold text-blue-700 mb-6">IDF 24-Hour Assessment Calculator</h1>
+        
+        <!-- Patient Management -->
+        <div class="mb-6 p-4 bg-gray-100 rounded-lg">
+            <h2 class="text-xl font-semibold text-blue-700 mb-4">Patient Management</h2>
+            
+            <!-- Add New Patient -->
+            <div class="mb-4 p-4 bg-blue-50 rounded-lg">
+                <h3 class="text-lg font-medium mb-2">Add New Patient</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Patient Name:</label>
+                        <input type="text" id="newPatientName" class="p-2 border rounded w-full">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">MRN:</label>
+                        <input type="text" id="newPatientMRN" class="p-2 border rounded w-full">
+                    </div>
+                </div>
+                <button id="addPatientBtn" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                    Add New Patient
+                </button>
+            </div>
+            
+            <!-- Select Existing Patient -->
+            <div class="p-4 bg-blue-50 rounded-lg">
+                <h3 class="text-lg font-medium mb-2">Select Existing Patient</h3>
+                <div class="flex items-center mb-2">
+                    <select id="patientSelector" class="p-2 border rounded mr-2 flex-grow"></select>
+                    <button id="loadPatientBtn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Load Patient</button>
+                </div>
+                <div class="flex justify-end">
+                    <button id="clearDataBtn" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                        Clear Current Patient Data
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Current Patient Info -->
+        <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+            <h2 class="text-xl font-semibold text-blue-700 mb-2">Current Patient</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Name:</label>
+                    <p id="currentPatientName" class="p-2 bg-white border rounded">No patient selected</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">MRN:</label>
+                    <p id="currentPatientMRN" class="p-2 bg-white border rounded">-</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Current Status -->
+        <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+            <h2 class="text-xl font-semibold text-blue-700 mb-2">Current 24-Hour Status</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                <div class="p-3 bg-white rounded shadow">
+                    <p class="text-sm text-gray-500">Feedings in Last 24 Hrs</p>
+                    <p class="text-2xl font-bold" id="totalScores">0</p>
+                </div>
+                <div class="p-3 bg-white rounded shadow">
+                    <p class="text-sm text-gray-500">Scores of 1-2</p>
+                    <p class="text-2xl font-bold" id="goodScores">0</p>
+                </div>
+                <div class="p-3 bg-white rounded shadow">
+                    <p class="text-sm text-gray-500">Percentage</p>
+                    <p class="text-2xl font-bold" id="percentGood">0%</p>
+                </div>
+            </div>
+            
+            <div id="timeline" class="mt-4 p-3 bg-white rounded hidden">
+                <h3 class="font-medium text-blue-700 mb-2">Recent Scores Timeline:</h3>
+                <div id="timelineContainer" class="flex overflow-x-auto pb-2"></div>
+            </div>
+            
+            <div id="waitingNotice" class="mt-4 p-3 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 hidden">
+                <p class="font-bold">Collecting 24 Hours of Data</p>
+                <p>Need assessment data spanning a full 24-hour period to determine if threshold is met.</p>
+            </div>
+            
+            <div id="thresholdMet" class="mt-4 p-3 bg-green-100 border-l-4 border-green-500 text-green-700 hidden">
+                <p class="font-bold">50% Threshold Met!</p>
+                <p id="thresholdMetTime"></p>
+                <p>The infant is ready to begin oral feedings per IDF protocol.</p>
+            </div>
+            
+            <div id="thresholdNotMet" class="mt-4 p-3 bg-red-100 border-l-4 border-red-500 text-red-700 hidden">
+                <p class="font-bold">Threshold Not Met</p>
+                <p>Full 24 hours of data collected, but less than 50% of scores are 1-2.</p>
+            </div>
+        </div>
+        
+        <!-- Add New Score -->
+        <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+            <h2 class="text-xl font-semibold text-blue-700 mb-2">Add New Readiness Score</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Feeding Date:</label>
+                    <input type="date" id="feedingDate" class="p-2 border rounded w-full">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Feeding Time:</label>
+                    <select id="feedingTime" class="p-2 border rounded w-full"></select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Readiness Score:</label>
+                    <select id="newScore" class="p-2 border rounded w-full">
+                        <option value="">Select a score</option>
+                        <option value="1">1 - Alert before care, sustained cues</option>
+                        <option value="2">2 - Alert once handled, sustained cues</option>
+                        <option value="3">3 - Alert state not sustained/no cues</option>
+                        <option value="4">4 - Sleeping, no hunger cues</option>
+                        <option value="5">5 - Physiologic compromise</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button id="addScoreBtn" class="px-4 py-2 rounded bg-gray-300 cursor-not-allowed">
+                Add Assessment
+            </button>
+        </div>
+        
+        <!-- Score History -->
+        <div class="p-4 bg-blue-50 rounded-lg">
+            <h2 class="text-xl font-semibold text-blue-700 mb-2">Assessment History</h2>
+            <div id="historyContainer" class="overflow-auto max-h-64">
+                <p class="text-gray-500 italic" id="noScoresMessage">No assessments recorded yet.</p>
+                <table id="historyTable" class="min-w-full bg-white hidden">
+                    <thead>
+                        <tr class="bg-blue-100">
+                            <th class="p-2 text-left">Feeding Date/Time</th>
+                            <th class="p-2 text-left">Documented</th>
+                            <th class="p-2 text-center">Score</th>
+                            <th class="p-2 text-left">Description</th>
+                            <th class="p-2 text-center">Counts for 50%</th>
+                            <th class="p-2 text-center">In Last 24hr</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
     
-    let closestTime = feedingTimeOptions[0];
-    let minDifference = Infinity;
-    
-    feedingTimeOptions.forEach(timeOption => {
-        const [hours, minutes] = timeOption.split(':').map(Number);
-        const timeValue = hours * 60 + minutes;
-        const difference = Math.abs(timeValue - currentTimeValue);
-        
-        if (difference < minDifference) {
-            minDifference = difference;
-            closestTime = timeOption;
-        }
-    });
-    
-    feedingTimeSelect.value = closestTime;
-
-    // Populate patient dropdown
-    populatePatientDropdown();
-
-    // Event Listeners
-    loadPatientBtn.addEventListener('click', function() {
-        const mrn = patientSelector.value;
-        if (mrn) {
-            loadPatientData(mrn);
-        }
-    });
-
-    clearDataBtn.addEventListener('click', function() {
-        if (confirm("Are you sure you want to clear all data for this patient?")) {
-            readinessScores = [];
-            thresholdMet = false;
-            thresholdMetTime = null;
-            
-            updateHistoryTable();
-            updateStats();
-            saveToLocalStorage();
-        }
-    });
-
-    // Enable/disable add button based on form completion
-    function updateAddButtonState() {
-        if (newScoreSelect.value && feedingDateInput.value && feedingTimeSelect.value && patientMRNInput.value) {
-            addScoreBtn.classList.remove('bg-gray-300', 'cursor-not-allowed');
-            addScoreBtn.classList.add('bg-blue-600', 'text-white', 'hover:bg-blue-700');
-            addScoreBtn.disabled = false;
-        } else {
-            addScoreBtn.classList.add('bg-gray-300', 'cursor-not-allowed');
-            addScoreBtn.classList.remove('bg-blue-600', 'text-white', 'hover:bg-blue-700');
-            addScoreBtn.disabled = true;
-        }
-    }
-
-    // Add score button click handler
-    addScoreBtn.addEventListener('click', addScore);
-    
-    // Form field change listeners
-    newScoreSelect.addEventListener('change', updateAddButtonState);
-    feedingDateInput.addEventListener('change', updateAddButtonState);
-    feedingTimeSelect.addEventListener('change', updateAddButtonState);
-    patientMRNInput.addEventListener('change', function() {
-        updateAddButtonState();
-        currentPatientMRN = patientMRNInput.value;
-        saveToLocalStorage();
-        populatePatientDropdown();
-    });
-    patientNameInput.addEventListener('change', function() {
-        saveToLocalStorage();
-        populatePatientDropdown();
-    });
-
-    // Initialize button state
-    updateAddButtonState();
-
-    // Add a new score entry
-    function addScore() {
-        if (newScoreSelect.value && ['1', '2', '3', '4', '5'].includes(newScoreSelect.value) && 
-            feedingDateInput.value && feedingTimeSelect.value && patientMRNInput.value) {
-            
-            // Handle midnight case (00:00)
-            let adjustedDate = feedingDateInput.value;
-            let adjustedTime = feedingTimeSelect.value;
-            
-            if (feedingTimeSelect.value === "00:00") {
-                // Create a date object for the feeding date
-                const feedingDateObj = new Date(feedingDateInput.value);
-                // Add one day for midnight entries
-                feedingDateObj.setDate(feedingDateObj.getDate() + 1);
-                // Format back to YYYY-MM-DD
-                adjustedDate = feedingDateObj.toISOString().split('T')[0];
-                adjustedTime = "00:00";
-            }
-            
-            // Create timestamp from feeding date and time
-            const feedingTimestamp = new Date(`${adjustedDate}T${adjustedTime}`);
-            
-            const newEntry = {
-                score: parseInt(newScoreSelect.value),
-                feedingTimestamp: feedingTimestamp.toISOString(),
-                documentedTimestamp: new Date().toISOString(),
-                isGoodScore: ['1', '2'].includes(newScoreSelect.value)
-            };
-            
-            // Add entry and sort by feeding timestamp
-            readinessScores = [...readinessScores, newEntry]
-                .sort((a, b) => new Date(a.feedingTimestamp) - new Date(b.feedingTimestamp));
-            
-            // Reset form
-            newScoreSelect.value = '';
-            
-            // Find next feeding time based on selected time
-            const currentIndex = feedingTimeOptions.indexOf(feedingTimeSelect.value);
-            const nextIndex = (currentIndex + 1) % feedingTimeOptions.length;
-            feedingTimeSelect.value = feedingTimeOptions[nextIndex];
-            
-            // Update UI
-            updateAddButtonState();
-            updateHistoryTable();
-            updateStats();
-            checkThreshold();
-            
-            // Save to local storage
-            saveToLocalStorage();
-            
-            // Update patient dropdown in case this is a new patient
-            populatePatientDropdown();
-        }
-    }
-
-    // Update the history table
-    function updateHistoryTable() {
-        if (readinessScores.length > 0) {
-            historyTable.classList.remove('hidden');
-            noScoresMessage.classList.add('hidden');
-            
-            // Clear the table
-            historyTableBody.innerHTML = '';
-            
-            // Get recent scores
-            const now = new Date();
-            const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
-            
-            // Add rows
-            readinessScores.slice().reverse().forEach((entry, index) => {
-                const row = document.createElement('tr');
-                row.className = index % 2 === 0 ? 'bg-gray-50' : 'bg-white';
-                
-                // Check if this entry is within the last 24 hours
-                const isInLastDay = new Date(entry.feedingTimestamp) > twentyFourHoursAgo;
-                
-                // Feeding Date/Time
-                const feedingTimeCell = document.createElement('td');
-                feedingTimeCell.className = 'p-2 font-medium';
-                feedingTimeCell.textContent = formatDate(entry.feedingTimestamp);
-                row.appendChild(feedingTimeCell);
-                
-                // Documented Time
-                const documentedTimeCell = document.createElement('td');
-                documentedTimeCell.className = 'p-2 text-sm text-gray-500';
-                documentedTimeCell.textContent = formatDate(entry.documentedTimestamp);
-                row.appendChild(documentedTimeCell);
-                
-                // Score
-                const scoreCell = document.createElement('td');
-                scoreCell.className = `p-2 text-center font-bold ${entry.isGoodScore ? 'text-green-600' : ''}`;
-                scoreCell.textContent = entry.score;
-                row.appendChild(scoreCell);
-                
-                // Description
-                const descriptionCell = document.createElement('td');
-                descriptionCell.className = 'p-2';
-                
-                switch(entry.score) {
-                    case 1:
-                        descriptionCell.textContent = "Alert before care, sustained cues";
-                        break;
-                    case 2:
-                        descriptionCell.textContent = "Alert once handled, sustained cues";
-                        break;
-                    case 3:
-                        descriptionCell.textContent = "Alert state not sustained/no cues";
-                        break;
-                    case 4:
-                        descriptionCell.textContent = "Sleeping, no hunger cues";
-                        break;
-                    case 5:
-                        descriptionCell.textContent = "Physiologic compromise";
-                        break;
-                }
-                
-                row.appendChild(descriptionCell);
-                
-                // Counts for 50%
-                const countsCell = document.createElement('td');
-                countsCell.className = 'p-2 text-center';
-                
-                if (entry.isGoodScore) {
-                    countsCell.innerHTML = '<span class="text-green-600 font-bold">✓</span>';
-                } else {
-                    countsCell.innerHTML = '<span class="text-red-600">✗</span>';
-                }
-                
-                row.appendChild(countsCell);
-                
-                // In Last 24hr
-                const lastDayCell = document.createElement('td');
-                lastDayCell.className = 'p-2 text-center';
-                
-                if (isInLastDay) {
-                    lastDayCell.innerHTML = '<span class="text-blue-600 font-bold">✓</span>';
-                } else {
-                    lastDayCell.innerHTML = '<span class="text-gray-400">✗</span>';
-                }
-                
-                row.appendChild(lastDayCell);
-                
-                historyTableBody.appendChild(row);
-            });
-        } else {
-            historyTable.classList.add('hidden');
-            noScoresMessage.classList.remove('hidden');
-        }
-    }
-
-    // Update statistics
-    function updateStats() {
-        const stats = getStats();
-        
-        totalScoresElement.textContent = stats.total;
-        goodScoresElement.textContent = stats.good;
-        
-        if (stats.percent >= 50) {
-            percentGoodElement.className = 'text-2xl font-bold text-green-600';
-        } else {
-            percentGoodElement.className = 'text-2xl font-bold text-gray-700';
-        }
-        
-        percentGoodElement.textContent = `${stats.percent}%`;
-        
-        // Update timeline
-        if (stats.total > 0) {
-            timelineElement.classList.remove('hidden');
-            timelineContainer.innerHTML = '';
-            
-            stats.recentScores.forEach(entry => {
-                const scoreDiv = document.createElement('div');
-                scoreDiv.className = 'flex-shrink-0 w-16 mr-1 text-center';
-                
-                const scoreBox = document.createElement('div');
-                scoreBox.className = `h-16 flex items-center justify-center rounded ${
-                    entry.isGoodScore ? 'bg-green-100 border border-green-400' : 'bg-gray-100 border border-gray-300'
-                }`;
-                
-                const scoreText = document.createElement('span');
-                scoreText.className = 'text-2xl font-bold';
-                scoreText.textContent = entry.score;
-                
-                const timeText = document.createElement('div');
-                timeText.className = 'text-xs mt-1';
-                timeText.textContent = new Date(entry.feedingTimestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                
-                scoreBox.appendChild(scoreText);
-                scoreDiv.appendChild(scoreBox);
-                scoreDiv.appendChild(timeText);
-                
-                timelineContainer.appendChild(scoreDiv);
-            });
-        } else {
-            timelineElement.classList.add('hidden');
-        }
-        
-        // Show appropriate notices
-        waitingNotice.classList.add('hidden');
-        thresholdMetNotice.classList.add('hidden');
-        thresholdNotMetNotice.classList.add('hidden');
-        
-        if (stats.total > 0) {
-            if (!stats.has24HoursData) {
-                waitingNotice.classList.remove('hidden');
-            } else if (stats.percent >= 50) {
-                thresholdMetNotice.classList.remove('hidden');
-                thresholdMetTimeElement.textContent = `Date/Time: ${formatDate(thresholdMetTime || new Date())}`;
-            } else {
-                thresholdNotMetNotice.classList.remove('hidden');
-            }
-        }
-    }
-
-    // Check if the threshold is met
-    function checkThreshold() {
-        const stats = getStats();
-        
-        if (stats.has24HoursData && stats.percent >= 50 && !thresholdMet) {
-            thresholdMet = true;
-            thresholdMetTime = new Date();
-            saveToLocalStorage();
-        }
-    }
-
-    // Calculate current stats
-    function getStats() {
-        if (readinessScores.length === 0) return { total: 0, good: 0, percent: 0, has24HoursData: false };
-        
-        // Get scores from the last 24 hours
-        const now = new Date();
-        const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
-        
-        const recentScores = readinessScores.filter(entry => 
-            new Date(entry.feedingTimestamp) > twentyFourHoursAgo
-        );
-        
-        // Check if we have a full 24 hours of data
-        let has24HoursData = false;
-        if (recentScores.length > 0) {
-            const earliestTime = new Date(Math.min(...recentScores.map(entry => new Date(entry.feedingTimestamp).getTime())));
-            const latestTime = new Date(Math.max(...recentScores.map(entry => new Date(entry.feedingTimestamp).getTime())));
-            const hourDifference = (latestTime - earliestTime) / (1000 * 60 * 60);
-            has24HoursData = hourDifference >= 24;
-        }
-        
-        const goodScores = recentScores.filter(entry => entry.isGoodScore);
-        const percentGood = recentScores.length > 0 ? 
-            Math.round((goodScores.length / recentScores.length) * 100) : 0;
-        
-        return {
-            total: recentScores.length,
-            good: goodScores.length,
-            percent: percentGood,
-            recentScores: recentScores,
-            has24HoursData: has24HoursData
-        };
-    }
-
-    // Format date for display
-    function formatDate(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-    }
-
-    // Format time for display (convert 24h to 12h)
-    function formatTimeFor12Hour(timeStr) {
-        const [hours, minutes] = timeStr.split(':');
-        const hour = parseInt(hours);
-        const ampm = hour >= 12 ? 'PM' : 'AM';
-        const hour12 = hour % 12 || 12;
-        return `${hour12}:${minutes} ${ampm}`;
-    }
-
-    // Save to local storage
-    function saveToLocalStorage() {
-        const mrn = patientMRNInput.value;
-        if (!mrn) return; // Don't save without an MRN
-        
-        const data = {
-            patientName: patientNameInput.value || "Unknown",
-            patientMRN: mrn,
-            readinessScores: readinessScores,
-            thresholdMet: thresholdMet,
-            thresholdMetTime: thresholdMetTime
-        };
-        
-        // Get existing patients list or create new one
-        let patientsList = JSON.parse(localStorage.getItem('idfPatientsList') || '[]');
-        if (!patientsList.includes(mrn)) {
-            patientsList.push(mrn);
-            localStorage.setItem('idfPatientsList', JSON.stringify(patientsList));
-        }
-        
-        // Save this patient's data
-        localStorage.setItem(`idfData_${mrn}`, JSON.stringify(data));
-        
-        // Update currentPatientMRN
-        currentPatientMRN = mrn;
-    }
-
-    // Populate patient dropdown
-    function populatePatientDropdown() {
-        patientSelector.innerHTML = '<option value="">Select a patient</option>';
-        
-        const patientsList = JSON.parse(localStorage.getItem('idfPatientsList') || '[]');
-        
-        patientsList.forEach(mrn => {
-            const patientDataString = localStorage.getItem(`idfData_${mrn}`);
-            if (patientDataString) {
-                try {
-                    const patientData = JSON.parse(patientDataString);
-                    const option = document.createElement('option');
-                    option.value = mrn;
-                    option.textContent = `${patientData.patientName || 'Unknown'} (${mrn})`;
-                    patientSelector.appendChild(option);
-                    
-                    // Select current patient in dropdown
-                    if (mrn === currentPatientMRN) {
-                        option.selected = true;
-                    }
-                } catch (e) {
-                    console.error('Error parsing patient data:', e);
-                }
-            }
-        });
-    }
-
-    // Load patient data
-    function loadPatientData(mrn) {
-        const storedData = localStorage.getItem(`idfData_${mrn}`);
-        
-        if (storedData) {
-            try {
-                const data = JSON.parse(storedData);
-                
-                patientNameInput.value = data.patientName || '';
-                patientMRNInput.value = mrn;
-                readinessScores = data.readinessScores || [];
-                thresholdMet = data.thresholdMet || false;
-                thresholdMetTime = data.thresholdMetTime ? new Date(data.thresholdMetTime) : null;
-                
-                currentPatientMRN = mrn;
-                
-                updateHistoryTable();
-                updateStats();
-                updateAddButtonState();
-                
-                // Update dropdown to show the currently selected patient
-                populatePatientDropdown();
-            } catch (e) {
-                console.error('Error loading patient data:', e);
-            }
-        }
-    }
-
-    // Load initial data
-    function loadInitialData() {
-        // Try to load last used patient
-        const lastUsedPatient = localStorage.getItem('lastUsedPatient');
-        if (lastUsedPatient) {
-            loadPatientData(lastUsedPatient);
-        }
-    }
-    
-    // Try to load previously used patient data
-    loadInitialData();
-});
+    <script src="script.js"></script>
+</body>
+</html>
