@@ -1,10 +1,10 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM fully loaded and parsed.");
 
-    // Grab references to input fields and UI elements
-    const patientNameInput = document.getElementById('newPatientName');
-    const patientMRNInput = document.getElementById('newPatientMRN');
-    const addPatientButton = document.getElementById('addPatientBtn');
+    // Grab references to input fields and UI elements using the IDs in your HTML
+    const patientNameInput = document.getElementById('patientName');
+    const patientMRNInput = document.getElementById('patientMRN');
+    const addPatientButton = document.getElementById('addPatient');
     const currentPatientNameElement = document.getElementById('currentPatientName');
     const currentPatientMRNElement = document.getElementById('currentPatientMRN');
 
@@ -83,14 +83,80 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update the UI with the new patient data
         loadPatientData(patientMRN);
 
-        // Optionally, clear the input fields after adding
+        // Populate the patient dropdown so the new patient appears
+        populatePatientSelector();
+
+        // Clear the input fields
         patientNameInput.value = "";
         patientMRNInput.value = "";
+    }
+
+    // Function to populate the patient selector dropdown from localStorage
+    function populatePatientSelector() {
+        const patientSelector = document.getElementById('patientSelector');
+        if (!patientSelector) {
+            console.error("Dropdown element not found. Check your HTML for 'patientSelector' ID.");
+            return;
+        }
+        // Clear existing options
+        patientSelector.innerHTML = "";
+        // Add a default placeholder option
+        const defaultOption = document.createElement("option");
+        defaultOption.value = "";
+        defaultOption.textContent = "Select a patient...";
+        patientSelector.appendChild(defaultOption);
+
+        // Loop through all keys in localStorage and add patients
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key === "lastUsedPatient") continue;
+            try {
+                const dataStr = localStorage.getItem(key);
+                const data = JSON.parse(dataStr);
+                if (data && data.patientName && data.patientMRN) {
+                    const option = document.createElement("option");
+                    option.value = key;
+                    option.textContent = `${data.patientName} (MRN: ${data.patientMRN})`;
+                    patientSelector.appendChild(option);
+                }
+            } catch (error) {
+                console.error(`Error parsing data for key "${key}":`, error);
+            }
+        }
     }
 
     // Attach the click event listener to the Add Patient button
     addPatientButton.addEventListener('click', addNewPatient);
     console.log("Event listener attached to Add New Patient button.");
+
+    // Attach event listener to Load Patient button
+    const loadPatientBtn = document.getElementById('loadPatientBtn');
+    if (loadPatientBtn) {
+        loadPatientBtn.addEventListener('click', () => {
+            const patientSelector = document.getElementById('patientSelector');
+            const selectedMRN = patientSelector.value;
+            if (selectedMRN) {
+                loadPatientData(selectedMRN);
+            } else {
+                alert("Please select a patient from the dropdown before loading.");
+            }
+        });
+    }
+
+    // Attach event listener to Clear Data button (optional)
+    const clearDataBtn = document.getElementById('clearDataBtn');
+    if (clearDataBtn) {
+        clearDataBtn.addEventListener('click', () => {
+            // Clear current patient data display
+            currentPatientNameElement.textContent = "No patient selected";
+            currentPatientMRNElement.textContent = "-";
+            localStorage.removeItem('lastUsedPatient');
+            console.log("Current patient data cleared.");
+        });
+    }
+
+    // Populate the dropdown on initial load
+    populatePatientSelector();
 
     // Auto-load the last used patient on page load, if available
     const lastUsedPatient = localStorage.getItem('lastUsedPatient');
