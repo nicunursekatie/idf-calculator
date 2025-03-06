@@ -1,133 +1,124 @@
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("DOM fully loaded and parsed.");
+  console.log("DOM fully loaded and parsed.");
 
-    // Grab references to input fields and UI elements
-    const patientNameInput = document.getElementById('patientName');
-    const patientMRNInput = document.getElementById('patientMRN');
-    const addPatientButton = document.getElementById('addPatient');
-    const patientSelector = document.getElementById('patientSelector');
-    const loadPatientBtn = document.getElementById('loadPatientBtn');
-    const clearDataBtn = document.getElementById('clearDataBtn');
-    const currentPatientNameElement = document.getElementById('currentPatientName');
-    const currentPatientMRNElement = document.getElementById('currentPatientMRN');
+  // Grab references to input fields and UI elements
+  const patientIDInput = document.getElementById('patientID'); // Unique Identifier input
+  const addPatientButton = document.getElementById('addPatient');
+  const patientSelector = document.getElementById('patientSelector');
+  const loadPatientBtn = document.getElementById('loadPatientBtn');
+  const clearDataBtn = document.getElementById('clearDataBtn');
+  const currentPatientIDElement = document.getElementById('currentPatientID');
 
-    // In-memory array to store patient objects
-    let patients = [];
-    let currentPatientMRN = null;
+  // In-memory array to store patient objects
+  let patients = [];
+  let currentPatientID = null;
 
-    // Functions to update UI as needed (stubbed out)
-    function updateHistoryTable() {
-        console.log("History table updated (in-memory version)");
-    }
-    function updateStats() {
-        console.log("Stats updated (in-memory version)");
-    }
+  // Functions to update additional UI components (stub implementations)
+  function updateHistoryTable() {
+    console.log("History table updated (in-memory version)");
+    // Implement additional logic as needed.
+  }
+  function updateStats() {
+    console.log("Stats updated (in-memory version)");
+    // Implement additional logic as needed.
+  }
 
-    // Function to add a new patient in memory
-    function addNewPatient() {
-        console.log("Add New Patient button clicked.");
-        const patientName = patientNameInput.value.trim();
-        const patientMRN = patientMRNInput.value.trim();
-        console.log("Input values:", { patientName, patientMRN });
+  // Function to add a new patient using the unique identifier
+  function addNewPatient() {
+    console.log("Add New Patient button clicked.");
+    const uniqueID = patientIDInput.value.trim();
+    console.log("Input unique identifier:", uniqueID);
 
-        if (!patientName || !patientMRN) {
-            alert("Please enter both patient name and MRN.");
-            return;
-        }
-
-        // Create the patient data object
-        const patientData = {
-            patientName: patientName,
-            patientMRN: patientMRN,
-            readinessScores: [],
-            thresholdMet: false,
-            thresholdMetTime: null
-        };
-
-        // Add to our in-memory array
-        patients.push(patientData);
-        console.log("New patient data added to in-memory array:", patientData);
-
-        // Load the new patient
-        loadPatientData(patientMRN);
-
-        // Repopulate the patient dropdown
-        populatePatientSelector();
-
-        // Clear the input fields
-        patientNameInput.value = "";
-        patientMRNInput.value = "";
+    if (!uniqueID) {
+      alert("Please enter the unique identifier.");
+      return;
     }
 
-    // Function to load patient data from the in-memory array
-    function loadPatientData(mrn) {
-        console.log("Attempting to load patient data for MRN:", mrn);
-        
-        // Find the patient in our in-memory array
-        const patientData = patients.find(p => p.patientMRN === mrn);
-        if (patientData) {
-            currentPatientMRN = mrn;
-            currentPatientNameElement.textContent = patientData.patientName || "Unknown";
-            currentPatientMRNElement.textContent = patientData.patientMRN;
-            updateHistoryTable();
-            updateStats();
-            console.log("Patient data loaded successfully (in-memory).");
-        } else {
-            console.warn("No in-memory patient found for MRN:", mrn);
-        }
-    }
+    // Create a patient object without storing any PHI
+    const patientData = {
+      uniqueID: uniqueID,
+      readinessScores: [],
+      thresholdMet: false,
+      thresholdMetTime: null
+    };
 
-    // Populate the patient selector dropdown from the in-memory array
-    function populatePatientSelector() {
-        if (!patientSelector) {
-            console.error("Dropdown element not found. Check your HTML for 'patientSelector' ID.");
-            return;
-        }
-        // Clear existing options
-        patientSelector.innerHTML = "";
-        // Add a default placeholder option
-        const defaultOption = document.createElement("option");
-        defaultOption.value = "";
-        defaultOption.textContent = "Select a patient...";
-        patientSelector.appendChild(defaultOption);
+    // Add patient data to the in-memory array
+    patients.push(patientData);
+    console.log("New patient data added:", patientData);
 
-        // Loop through all patients in memory
-        patients.forEach(patient => {
-            const option = document.createElement("option");
-            option.value = patient.patientMRN;
-            option.textContent = `${patient.patientName} (MRN: ${patient.patientMRN})`;
-            patientSelector.appendChild(option);
-        });
-    }
+    // Load the new patient data
+    loadPatientData(uniqueID);
 
-    // Event listener for Add Patient button
-    addPatientButton.addEventListener('click', addNewPatient);
-
-    // Event listener for Load Patient button
-    if (loadPatientBtn) {
-        loadPatientBtn.addEventListener('click', () => {
-            const selectedMRN = patientSelector.value;
-            if (selectedMRN) {
-                loadPatientData(selectedMRN);
-            } else {
-                alert("Please select a patient from the dropdown before loading.");
-            }
-        });
-    }
-
-    // Event listener for Clear Data button
-    if (clearDataBtn) {
-        clearDataBtn.addEventListener('click', () => {
-            // Clear current patient data display
-            currentPatientNameElement.textContent = "No patient selected";
-            currentPatientMRNElement.textContent = "-";
-            currentPatientMRN = null;
-            console.log("Current patient data cleared (in-memory).");
-        });
-    }
-
-    // Initially populate the dropdown (empty at first, but let's keep it consistent)
+    // Repopulate the patient selector dropdown
     populatePatientSelector();
 
-    console.log("In-memory version initialized.");
+    // Clear the input field
+    patientIDInput.value = "";
+  }
+
+  // Function to load patient data by unique identifier
+  function loadPatientData(uniqueID) {
+    console.log("Attempting to load patient data for unique ID:", uniqueID);
+    const patientData = patients.find(p => p.uniqueID === uniqueID);
+    if (patientData) {
+      currentPatientID = uniqueID;
+      currentPatientIDElement.textContent = patientData.uniqueID;
+      updateHistoryTable();
+      updateStats();
+      console.log("Patient data loaded successfully (in-memory).");
+    } else {
+      console.warn("No patient found for unique ID:", uniqueID);
+    }
+  }
+
+  // Function to populate the patient selector dropdown from the in-memory array
+  function populatePatientSelector() {
+    if (!patientSelector) {
+      console.error("Dropdown element not found. Check your HTML for 'patientSelector' ID.");
+      return;
+    }
+    // Clear existing options
+    patientSelector.innerHTML = "";
+    // Add a default placeholder option
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.textContent = "Select a patient...";
+    patientSelector.appendChild(defaultOption);
+
+    // Add each patient's uniqueID to the dropdown
+    patients.forEach(patient => {
+      const option = document.createElement("option");
+      option.value = patient.uniqueID;
+      option.textContent = patient.uniqueID;
+      patientSelector.appendChild(option);
+    });
+  }
+
+  // Event listener for Add Patient button
+  addPatientButton.addEventListener('click', addNewPatient);
+
+  // Event listener for Load Patient button
+  if (loadPatientBtn) {
+    loadPatientBtn.addEventListener('click', () => {
+      const selectedID = patientSelector.value;
+      if (selectedID) {
+        loadPatientData(selectedID);
+      } else {
+        alert("Please select a patient from the dropdown before loading.");
+      }
+    });
+  }
+
+  // Event listener for Clear Data button
+  if (clearDataBtn) {
+    clearDataBtn.addEventListener('click', () => {
+      currentPatientIDElement.textContent = "No patient selected";
+      currentPatientID = null;
+      console.log("Current patient data cleared (in-memory).");
+    });
+  }
+
+  // Initialize the dropdown on page load
+  populatePatientSelector();
+  console.log("In-memory version initialized.");
 });
