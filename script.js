@@ -1,10 +1,17 @@
 document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM fully loaded and parsed.");
+
     // Grab references to input fields and UI elements
     const patientNameInput = document.getElementById('patientName');
     const patientMRNInput = document.getElementById('patientMRN');
     const addPatientButton = document.getElementById('addPatient');
     const currentPatientNameElement = document.getElementById('currentPatientName');
     const currentPatientMRNElement = document.getElementById('currentPatientMRN');
+
+    if (!patientNameInput || !patientMRNInput || !addPatientButton) {
+        console.error("One or more patient input elements are missing. Check your HTML IDs.");
+        return;
+    }
 
     // Global variables for patient data
     let readinessScores = [];
@@ -14,16 +21,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to update additional UI components (implement as needed)
     function updateHistoryTable() {
-        // Your logic for updating the history table goes here
         console.log("History table updated");
+        // Implement actual update logic here.
     }
     function updateStats() {
-        // Your logic for updating statistics goes here
         console.log("Stats updated");
+        // Implement actual update logic here.
     }
 
     // Function to load patient data from localStorage using MRN as key
     function loadPatientData(mrn) {
+        console.log("Attempting to load patient data for MRN:", mrn);
         const storedData = localStorage.getItem(mrn);
         if (storedData) {
             try {
@@ -38,16 +46,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateStats();
                 // Store last used patient for auto-loading next time
                 localStorage.setItem('lastUsedPatient', currentPatientMRN);
+                console.log("Patient data loaded successfully.");
             } catch (e) {
                 console.error("Error loading patient data:", e);
             }
+        } else {
+            console.warn("No stored data found for MRN:", mrn);
         }
     }
 
     // Function to add a new patient
     function addNewPatient() {
+        console.log("Add New Patient button clicked.");
         const patientName = patientNameInput.value.trim();
         const patientMRN = patientMRNInput.value.trim();
+        console.log("Input values:", { patientName, patientMRN });
 
         if (!patientName || !patientMRN) {
             alert("Please enter both patient name and MRN.");
@@ -65,6 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Save the new patient data to localStorage (using MRN as key)
         localStorage.setItem(patientMRN, JSON.stringify(patientData));
+        console.log("New patient data saved:", patientData);
 
         // Update the UI with the new patient data
         loadPatientData(patientMRN);
@@ -76,10 +90,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Attach the click event listener to the Add Patient button
     addPatientButton.addEventListener('click', addNewPatient);
+    console.log("Event listener attached to Add New Patient button.");
 
     // Auto-load the last used patient on page load, if available
     const lastUsedPatient = localStorage.getItem('lastUsedPatient');
     if (lastUsedPatient) {
+        console.log("Auto-loading last used patient:", lastUsedPatient);
         loadPatientData(lastUsedPatient);
     }
 });
