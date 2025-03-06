@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
   console.log("DOM fully loaded and parsed.");
 
-  // Grab references to input fields and UI elements
+  // Grab references for patient management
   const patientIDInput = document.getElementById('patientID'); // Unique Identifier input
   const addPatientButton = document.getElementById('addPatient');
   const patientSelector = document.getElementById('patientSelector');
@@ -14,20 +14,61 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
 
-  // Global variables for patient data (including assessment data)
+  // Global variables for patient data
   let readinessScores = [];
   let thresholdMet = false;
   let thresholdMetTime = null;
   let currentPatientID = '';
 
-  // Function to update additional UI components (e.g., history table, stats)
+  // Function to update the Assessment History table
   function updateHistoryTable() {
-    console.log("History table updated");
-    // Implement actual update logic here if needed.
+    const historyTableBody = document.getElementById('historyTableBody');
+    const noScoresMessage = document.getElementById('noScoresMessage');
+    const historyTable = document.getElementById('historyTable');
+    if (!historyTableBody) {
+      console.warn("History table body not found.");
+      return;
+    }
+    // Clear table
+    historyTableBody.innerHTML = "";
+    if (readinessScores.length === 0) {
+      if (noScoresMessage) noScoresMessage.style.display = "block";
+      if (historyTable) historyTable.classList.add("hidden");
+      return;
+    } else {
+      if (noScoresMessage) noScoresMessage.style.display = "none";
+      if (historyTable) historyTable.classList.remove("hidden");
+    }
+    // Add a row for each score
+    readinessScores.forEach(scoreObj => {
+      const row = document.createElement("tr");
+
+      const dateCell = document.createElement("td");
+      dateCell.className = "p-2";
+      dateCell.textContent = new Date(scoreObj.timestamp).toLocaleString();
+
+      const scoreCell = document.createElement("td");
+      scoreCell.className = "p-2 text-center";
+      scoreCell.textContent = scoreObj.score;
+
+      row.appendChild(dateCell);
+      row.appendChild(scoreCell);
+      historyTableBody.appendChild(row);
+    });
   }
+
+  // Function to update 24-Hour Status stats
   function updateStats() {
-    console.log("Stats updated");
-    // Implement actual update logic here if needed.
+    const totalScoresEl = document.getElementById('totalScores');
+    const goodScoresEl = document.getElementById('goodScores');
+    const percentGoodEl = document.getElementById('percentGood');
+    if (!totalScoresEl || !goodScoresEl || !percentGoodEl) return;
+
+    const total = readinessScores.length;
+    const good = readinessScores.filter(scoreObj => scoreObj.score <= 2).length;
+    totalScoresEl.textContent = total;
+    goodScoresEl.textContent = good;
+    percentGoodEl.textContent = total ? ((good / total) * 100).toFixed(0) + "%" : "0%";
   }
 
   // Function to load patient data from localStorage using the unique identifier as key
@@ -44,7 +85,6 @@ document.addEventListener('DOMContentLoaded', function() {
         thresholdMetTime = patientData.thresholdMetTime ? new Date(patientData.thresholdMetTime) : null;
         updateHistoryTable();
         updateStats();
-        // Store last used patient for auto-loading next time
         localStorage.setItem('lastUsedPatient', currentPatientID);
         console.log("Patient data loaded successfully.");
       } catch (e) {
@@ -60,31 +100,20 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log("Add New Patient button clicked.");
     const uniqueID = patientIDInput.value.trim();
     console.log("Input unique identifier:", uniqueID);
-
     if (!uniqueID) {
       alert("Please enter the unique identifier.");
       return;
     }
-
-    // Create the patient data object without storing any sensitive information
     const patientData = {
       uniqueID: uniqueID,
       readinessScores: [],
       thresholdMet: false,
       thresholdMetTime: null
     };
-
-    // Save the new patient data to localStorage (using the unique ID as key)
     localStorage.setItem(uniqueID, JSON.stringify(patientData));
     console.log("New patient data saved:", patientData);
-
-    // Update the UI with the new patient data
     loadPatientData(uniqueID);
-
-    // Repopulate the patient dropdown so the new patient appears
     populatePatientSelector();
-
-    // Clear the input field
     patientIDInput.value = "";
   }
 
@@ -94,39 +123,31 @@ document.addEventListener('DOMContentLoaded', function() {
       console.error("Dropdown element not found. Check your HTML for 'patientSelector' ID.");
       return;
     }
-    // Clear existing options
     patientSelector.innerHTML = "";
-    // Add a default placeholder option
     const defaultOption = document.createElement("option");
     defaultOption.value = "";
     defaultOption.textContent = "Select a patient...";
     patientSelector.appendChild(defaultOption);
-
-    // Loop through all keys in localStorage and add those that represent patient data
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      // Skip the lastUsedPatient key and any keys that aren’t our patient records
       if (key === "lastUsedPatient") continue;
       try {
         const dataStr = localStorage.getItem(key);
         const data = JSON.parse(dataStr);
         if (data && data.uniqueID) {
           const option = document.createElement("option");
-          option.value = key;  // Using the unique identifier as key
+          option.value = key;
           option.textContent = data.uniqueID;
           patientSelector.appendChild(option);
         }
       } catch (error) {
-        // Ignore keys that are not valid JSON or not our patient data
         console.error(`Error parsing data for key "${key}":`, error);
       }
     }
   }
 
-  // Attach event listener to the Add Patient button
   addPatientButton.addEventListener('click', addNewPatient);
 
-  // Attach event listener to the Load Patient button
   if (loadPatientBtn) {
     loadPatientBtn.addEventListener('click', () => {
       const selectedID = patientSelector.value;
@@ -138,7 +159,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Attach event listener to the Clear Data button
   if (clearDataBtn) {
     clearDataBtn.addEventListener('click', () => {
       currentPatientIDElement.textContent = "No patient selected";
@@ -147,15 +167,77 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Populate the dropdown on initial load
   populatePatientSelector();
-
-  // Auto-load the last used patient on page load, if available
   const lastUsedPatient = localStorage.getItem('lastUsedPatient');
   if (lastUsedPatient) {
     console.log("Auto-loading last used patient:", lastUsedPatient);
     loadPatientData(lastUsedPatient);
   }
 
-  console.log("Unique Identifier version initialized.");
+  // ---------------------------
+  // Scoring Functionality Below
+  // ---------------------------
+
+  const feedingDateInput = document.getElementById('feedingDate');
+  const feedingTimeSelect = document.getElementById('feedingTime');
+  const newScoreSelect = document.getElementById('newScore');
+  const addScoreBtn = document.getElementById('addScoreBtn');
+
+  // Populate feedingTime select with example time options if not already populated
+  if (feedingTimeSelect) {
+    feedingTimeSelect.innerHTML = "";
+    const times = ["00:00", "06:00", "12:00", "18:00"];
+    times.forEach(time => {
+      const option = document.createElement("option");
+      option.value = time;
+      option.textContent = time;
+      feedingTimeSelect.appendChild(option);
+    });
+  }
+
+  // Function to add a new readiness score for the current patient
+  function addNewScore() {
+    if (!currentPatientID) {
+      alert("No patient selected. Please add or load a patient first.");
+      return;
+    }
+    const feedingDate = feedingDateInput.value;
+    const feedingTime = feedingTimeSelect.value;
+    const score = newScoreSelect.value;
+    if (!feedingDate || !feedingTime || !score) {
+      alert("Please fill in all the score fields.");
+      return;
+    }
+    const timestamp = new Date(`${feedingDate}T${feedingTime}`);
+    const scoreObj = {
+      timestamp: timestamp.toISOString(),
+      score: parseInt(score)
+    };
+    const storedData = localStorage.getItem(currentPatientID);
+    if (storedData) {
+      try {
+        const patientData = JSON.parse(storedData);
+        patientData.readinessScores = patientData.readinessScores || [];
+        patientData.readinessScores.push(scoreObj);
+        localStorage.setItem(currentPatientID, JSON.stringify(patientData));
+        readinessScores = patientData.readinessScores;
+        updateHistoryTable();
+        updateStats();
+        alert("Assessment added successfully.");
+        feedingDateInput.value = "";
+        feedingTimeSelect.selectedIndex = 0;
+        newScoreSelect.selectedIndex = 0;
+      } catch (e) {
+        console.error("Error updating patient data with new score:", e);
+      }
+    } else {
+      alert("Current patient data not found.");
+    }
+  }
+
+  if (addScoreBtn) {
+    addScoreBtn.addEventListener('click', addNewScore);
+  }
+
+  console.log("Unique Identifier version with scoring functionality initialized.");
 });
