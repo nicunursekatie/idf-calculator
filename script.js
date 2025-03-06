@@ -9,18 +9,50 @@ document.addEventListener('DOMContentLoaded', function() {
   const clearDataBtn = document.getElementById('clearDataBtn');
   const currentPatientIDElement = document.getElementById('currentPatientID');
 
-  // In-memory array to store patient objects
-  let patients = [];
-  let currentPatientID = null;
+  if (!patientIDInput || !addPatientButton) {
+    console.error("Missing patient input elements. Please check your HTML IDs.");
+    return;
+  }
 
-  // Functions to update additional UI components (stub implementations)
+  // Global variables for patient data (including assessment data)
+  let readinessScores = [];
+  let thresholdMet = false;
+  let thresholdMetTime = null;
+  let currentPatientID = '';
+
+  // Function to update additional UI components (e.g., history table, stats)
   function updateHistoryTable() {
-    console.log("History table updated (in-memory version)");
-    // Implement additional logic as needed.
+    console.log("History table updated");
+    // Implement actual update logic here if needed.
   }
   function updateStats() {
-    console.log("Stats updated (in-memory version)");
-    // Implement additional logic as needed.
+    console.log("Stats updated");
+    // Implement actual update logic here if needed.
+  }
+
+  // Function to load patient data from localStorage using the unique identifier as key
+  function loadPatientData(id) {
+    console.log("Attempting to load patient data for ID:", id);
+    const storedData = localStorage.getItem(id);
+    if (storedData) {
+      try {
+        const patientData = JSON.parse(storedData);
+        currentPatientID = id;
+        currentPatientIDElement.textContent = patientData.uniqueID || "Unknown";
+        readinessScores = patientData.readinessScores || [];
+        thresholdMet = patientData.thresholdMet || false;
+        thresholdMetTime = patientData.thresholdMetTime ? new Date(patientData.thresholdMetTime) : null;
+        updateHistoryTable();
+        updateStats();
+        // Store last used patient for auto-loading next time
+        localStorage.setItem('lastUsedPatient', currentPatientID);
+        console.log("Patient data loaded successfully.");
+      } catch (e) {
+        console.error("Error loading patient data:", e);
+      }
+    } else {
+      console.warn("No stored data found for ID:", id);
+    }
   }
 
   // Function to add a new patient using the unique identifier
@@ -34,7 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
-    // Create a patient object without storing any PHI
+    // Create the patient data object without storing any sensitive information
     const patientData = {
       uniqueID: uniqueID,
       readinessScores: [],
@@ -42,36 +74,21 @@ document.addEventListener('DOMContentLoaded', function() {
       thresholdMetTime: null
     };
 
-    // Add patient data to the in-memory array
-    patients.push(patientData);
-    console.log("New patient data added:", patientData);
+    // Save the new patient data to localStorage (using the unique ID as key)
+    localStorage.setItem(uniqueID, JSON.stringify(patientData));
+    console.log("New patient data saved:", patientData);
 
-    // Load the new patient data
+    // Update the UI with the new patient data
     loadPatientData(uniqueID);
 
-    // Repopulate the patient selector dropdown
+    // Repopulate the patient dropdown so the new patient appears
     populatePatientSelector();
 
     // Clear the input field
     patientIDInput.value = "";
   }
 
-  // Function to load patient data by unique identifier
-  function loadPatientData(uniqueID) {
-    console.log("Attempting to load patient data for unique ID:", uniqueID);
-    const patientData = patients.find(p => p.uniqueID === uniqueID);
-    if (patientData) {
-      currentPatientID = uniqueID;
-      currentPatientIDElement.textContent = patientData.uniqueID;
-      updateHistoryTable();
-      updateStats();
-      console.log("Patient data loaded successfully (in-memory).");
-    } else {
-      console.warn("No patient found for unique ID:", uniqueID);
-    }
-  }
-
-  // Function to populate the patient selector dropdown from the in-memory array
+  // Function to populate the patient selector dropdown from localStorage
   function populatePatientSelector() {
     if (!patientSelector) {
       console.error("Dropdown element not found. Check your HTML for 'patientSelector' ID.");
@@ -85,19 +102,31 @@ document.addEventListener('DOMContentLoaded', function() {
     defaultOption.textContent = "Select a patient...";
     patientSelector.appendChild(defaultOption);
 
-    // Add each patient's uniqueID to the dropdown
-    patients.forEach(patient => {
-      const option = document.createElement("option");
-      option.value = patient.uniqueID;
-      option.textContent = patient.uniqueID;
-      patientSelector.appendChild(option);
-    });
+    // Loop through all keys in localStorage and add those that represent patient data
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      // Skip the lastUsedPatient key and any keys that aren’t our patient records
+      if (key === "lastUsedPatient") continue;
+      try {
+        const dataStr = localStorage.getItem(key);
+        const data = JSON.parse(dataStr);
+        if (data && data.uniqueID) {
+          const option = document.createElement("option");
+          option.value = key;  // Using the unique identifier as key
+          option.textContent = data.uniqueID;
+          patientSelector.appendChild(option);
+        }
+      } catch (error) {
+        // Ignore keys that are not valid JSON or not our patient data
+        console.error(`Error parsing data for key "${key}":`, error);
+      }
+    }
   }
 
-  // Event listener for Add Patient button
+  // Attach event listener to the Add Patient button
   addPatientButton.addEventListener('click', addNewPatient);
 
-  // Event listener for Load Patient button
+  // Attach event listener to the Load Patient button
   if (loadPatientBtn) {
     loadPatientBtn.addEventListener('click', () => {
       const selectedID = patientSelector.value;
@@ -109,16 +138,24 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Event listener for Clear Data button
+  // Attach event listener to the Clear Data button
   if (clearDataBtn) {
     clearDataBtn.addEventListener('click', () => {
       currentPatientIDElement.textContent = "No patient selected";
-      currentPatientID = null;
-      console.log("Current patient data cleared (in-memory).");
+      localStorage.removeItem('lastUsedPatient');
+      console.log("Current patient data cleared.");
     });
   }
 
-  // Initialize the dropdown on page load
+  // Populate the dropdown on initial load
   populatePatientSelector();
-  console.log("In-memory version initialized.");
+
+  // Auto-load the last used patient on page load, if available
+  const lastUsedPatient = localStorage.getItem('lastUsedPatient');
+  if (lastUsedPatient) {
+    console.log("Auto-loading last used patient:", lastUsedPatient);
+    loadPatientData(lastUsedPatient);
+  }
+
+  console.log("Unique Identifier version initialized.");
 });
