@@ -93,10 +93,6 @@ document.addEventListener('DOMContentLoaded', function() {
             thresholdMet = false;
             thresholdMetTime = null;
             
-            // Don't clear the MRN/name to make it easier to re-enter data for the same patient
-            // patientNameInput.value = '';
-            // patientMRNInput.value = '';
-            
             updateHistoryTable();
             updateStats();
             saveToLocalStorage();
@@ -125,11 +121,14 @@ document.addEventListener('DOMContentLoaded', function() {
     feedingTimeSelect.addEventListener('change', updateAddButtonState);
     patientMRNInput.addEventListener('change', function() {
         updateAddButtonState();
-        // Update currentPatientMRN when changed
         currentPatientMRN = patientMRNInput.value;
         saveToLocalStorage();
+        populatePatientDropdown();
     });
-    patientNameInput.addEventListener('change', saveToLocalStorage);
+    patientNameInput.addEventListener('change', function() {
+        saveToLocalStorage();
+        populatePatientDropdown();
+    });
 
     // Initialize button state
     updateAddButtonState();
@@ -414,7 +413,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!mrn) return; // Don't save without an MRN
         
         const data = {
-            patientName: patientNameInput.value,
+            patientName: patientNameInput.value || "Unknown",
             patientMRN: mrn,
             readinessScores: readinessScores,
             thresholdMet: thresholdMet,
@@ -437,18 +436,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Populate patient dropdown
     function populatePatientDropdown() {
-        const patientSelector = document.getElementById('patientSelector');
         patientSelector.innerHTML = '<option value="">Select a patient</option>';
         
         const patientsList = JSON.parse(localStorage.getItem('idfPatientsList') || '[]');
         
         patientsList.forEach(mrn => {
-            const patientData = JSON.parse(localStorage.getItem(`idfData_${mrn}`));
-            if (patientData) {
-                const option = document.createElement('option');
-                option.value = mrn;
-                option.textContent = `${patientData.patientName || 'Unknown'} (${mrn})`;
-                patientSelector.appendChild(option);
+            const patientDataString = localStorage.getItem(`idfData_${mrn}`);
+            if (patientDataString) {
+                try {
+                    const patientData = JSON.parse(patientDataString);
+                    const option = document.createElement('option');
+                    option.value = mrn;
+                    option.textContent = `${patientData.patientName || 'Unknown'} (${mrn})`;
+                    patientSelector.appendChild(option);
+                    
+                    // Select current patient in dropdown
+                    if (mrn === currentPatientMRN) {
+                        option.selected = true;
+                    }
+                } catch (e) {
+                    console.error('Error parsing patient data:', e);
+                }
             }
         });
     }
@@ -458,24 +466,38 @@ document.addEventListener('DOMContentLoaded', function() {
         const storedData = localStorage.getItem(`idfData_${mrn}`);
         
         if (storedData) {
-            const data = JSON.parse(storedData);
-            
-            patientNameInput.value = data.patientName || '';
-            patientMRNInput.value = mrn;
-            readinessScores = data.readinessScores || [];
-            thresholdMet = data.thresholdMet || false;
-            thresholdMetTime = data.thresholdMetTime ? new Date(data.thresholdMetTime) : null;
-            
-            currentPatientMRN = mrn;
-            
-            updateHistoryTable();
-            updateStats();
-            updateAddButtonState();
+            try {
+                const data = JSON.parse(storedData);
+                
+                patientNameInput.value = data.patientName || '';
+                patientMRNInput.value = mrn;
+                readinessScores = data.readinessScores || [];
+                thresholdMet = data.thresholdMet || false;
+                thresholdMetTime = data.thresholdMetTime ? new Date(data.thresholdMetTime) : null;
+                
+                currentPatientMRN = mrn;
+                
+                updateHistoryTable();
+                updateStats();
+                updateAddButtonState();
+                
+                // Update dropdown to show the currently selected patient
+                populatePatientDropdown();
+            } catch (e) {
+                console.error('Error loading patient data:', e);
+            }
         }
     }
 
-    // Load data on page load
-    if (currentPatientMRN) {
-        loadPatientData(currentPatientMRN);
+    // Load initial data
+    function loadInitialData() {
+        // Try to load last used patient
+        const lastUsedPatient = localStorage.getItem('lastUsedPatient');
+        if (lastUsedPatient) {
+            loadPatientData(lastUsedPatient);
+        }
     }
+    
+    // Try to load previously used patient data
+    loadInitialData();
 });
