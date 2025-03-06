@@ -112,6 +112,13 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       console.warn("No stored data found for ID:", id);
     }
+
+    // -- AUTO-FILL DATE HERE (each time we load a patient) --
+    if (feedingDateInput) {
+      const today = new Date().toISOString().split('T')[0];
+      feedingDateInput.value = today;
+      console.log("Feeding date auto-filled with today's date:", feedingDateInput.value);
+    }
   }
 
   // Function to add a new patient using the unique identifier
@@ -198,16 +205,11 @@ document.addEventListener('DOMContentLoaded', function() {
   // ---------------------------
   
   const feedingDateInput = document.getElementById('feedingDate');
-  if (feedingDateInput) {
-    // Format today's date as YYYY-MM-DD, which is what <input type="date"> expects
-    const today = new Date().toISOString().split('T')[0];
-    feedingDateInput.value = today;
-  }
   const feedingTimeSelect = document.getElementById('feedingTime');
   const newScoreSelect = document.getElementById('newScore');
   const addScoreBtn = document.getElementById('addScoreBtn');
 
-  // Populate feedingTime select with example time options if not already populated
+  // Populate feedingTime select with example time options if not already
   if (feedingTimeSelect) {
     feedingTimeSelect.innerHTML = "";
     const times = ["00:00", "06:00", "12:00", "18:00"];
@@ -217,6 +219,13 @@ document.addEventListener('DOMContentLoaded', function() {
       option.textContent = time;
       feedingTimeSelect.appendChild(option);
     });
+  }
+
+  // Also auto-fill date when the page first loads (outside loadPatientData)
+  if (feedingDateInput) {
+    const today = new Date().toISOString().split('T')[0];
+    feedingDateInput.value = today;
+    console.log("Feeding date auto-filled on initial load:", feedingDateInput.value);
   }
 
   // Function to add a new readiness score for the current patient
@@ -248,7 +257,8 @@ document.addEventListener('DOMContentLoaded', function() {
         updateHistoryTable();
         updateStats();
         alert("Assessment added successfully.");
-        feedingDateInput.value = "";
+        // Reset date to today's date again (optional):
+        feedingDateInput.value = new Date().toISOString().split('T')[0];
         feedingTimeSelect.selectedIndex = 0;
         newScoreSelect.selectedIndex = 0;
       } catch (e) {
@@ -263,5 +273,5 @@ document.addEventListener('DOMContentLoaded', function() {
     addScoreBtn.addEventListener('click', addNewScore);
   }
 
-  console.log("Unique Identifier version with guided scoring functionality initialized.");
+  console.log("Unique Identifier version with auto-fill date functionality initialized.");
 });
