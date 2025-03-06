@@ -307,11 +307,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Check if the threshold is met
+    function checkThreshold() {
+        const stats = getStats();
+        
+        if (stats.has24HoursData && stats.percent >= 50 && !thresholdMet) {
+            thresholdMet = true;
+            thresholdMetTime = new Date();
+            saveToLocalStorage();
+        }
+    }
+
     // Calculate current stats
     function getStats() {
         if (readinessScores.length === 0) return { total: 0, good: 0, percent: 0, has24HoursData: false };
         
-        // Get scores from the last 24 hours based on feeding time
+        // Get scores from the last 24 hours
         const now = new Date();
         const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
         
@@ -339,17 +350,6 @@ document.addEventListener('DOMContentLoaded', function() {
             recentScores: recentScores,
             has24HoursData: has24HoursData
         };
-    }
-
-    // Check if the threshold is met
-    function checkThreshold() {
-        const stats = getStats();
-        
-        if (stats.has24HoursData && stats.percent >= 50 && !thresholdMet) {
-            thresholdMet = true;
-            thresholdMetTime = new Date();
-            saveToLocalStorage();
-        }
     }
 
     // Format date for display
