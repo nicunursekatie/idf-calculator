@@ -2,9 +2,9 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM fully loaded and parsed.");
 
     // Grab references to input fields and UI elements
-    const patientNameInput = document.getElementById('patientName');
-    const patientMRNInput = document.getElementById('patientMRN');
-    const addPatientButton = document.getElementById('addPatient');
+    const patientNameInput = document.getElementById('newPatientName');
+    const patientMRNInput = document.getElementById('newPatientMRN');
+    const addPatientButton = document.getElementById('addPatientBtn');
     const currentPatientNameElement = document.getElementById('currentPatientName');
     const currentPatientMRNElement = document.getElementById('currentPatientMRN');
 
