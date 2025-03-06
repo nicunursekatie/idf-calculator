@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let readinessScores = [];
     let thresholdMet = false;
     let thresholdMetTime = null;
+    let currentPatientMRN = '';
 
     // DOM elements
     const patientNameInput = document.getElementById('patientName');
@@ -37,6 +38,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const thresholdMetNotice = document.getElementById('thresholdMet');
     const thresholdNotMetNotice = document.getElementById('thresholdNotMet');
     const thresholdMetTimeElement = document.getElementById('thresholdMetTime');
+    const patientSelector = document.getElementById('patientSelector');
+    const loadPatientBtn = document.getElementById('loadPatientBtn');
+    const clearDataBtn = document.getElementById('clearDataBtn');
 
     // Initialize feeding time options
     feedingTimeOptions.forEach(time => {
@@ -72,9 +76,36 @@ document.addEventListener('DOMContentLoaded', function() {
     
     feedingTimeSelect.value = closestTime;
 
+    // Populate patient dropdown
+    populatePatientDropdown();
+
+    // Event Listeners
+    loadPatientBtn.addEventListener('click', function() {
+        const mrn = patientSelector.value;
+        if (mrn) {
+            loadPatientData(mrn);
+        }
+    });
+
+    clearDataBtn.addEventListener('click', function() {
+        if (confirm("Are you sure you want to clear all data for this patient?")) {
+            readinessScores = [];
+            thresholdMet = false;
+            thresholdMetTime = null;
+            
+            // Don't clear the MRN/name to make it easier to re-enter data for the same patient
+            // patientNameInput.value = '';
+            // patientMRNInput.value = '';
+            
+            updateHistoryTable();
+            updateStats();
+            saveToLocalStorage();
+        }
+    });
+
     // Enable/disable add button based on form completion
     function updateAddButtonState() {
-        if (newScoreSelect.value && feedingDateInput.value && feedingTimeSelect.value) {
+        if (newScoreSelect.value && feedingDateInput.value && feedingTimeSelect.value && patientMRNInput.value) {
             addScoreBtn.classList.remove('bg-gray-300', 'cursor-not-allowed');
             addScoreBtn.classList.add('bg-blue-600', 'text-white', 'hover:bg-blue-700');
             addScoreBtn.disabled = false;
@@ -92,6 +123,13 @@ document.addEventListener('DOMContentLoaded', function() {
     newScoreSelect.addEventListener('change', updateAddButtonState);
     feedingDateInput.addEventListener('change', updateAddButtonState);
     feedingTimeSelect.addEventListener('change', updateAddButtonState);
+    patientMRNInput.addEventListener('change', function() {
+        updateAddButtonState();
+        // Update currentPatientMRN when changed
+        currentPatientMRN = patientMRNInput.value;
+        saveToLocalStorage();
+    });
+    patientNameInput.addEventListener('change', saveToLocalStorage);
 
     // Initialize button state
     updateAddButtonState();
@@ -99,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add a new score entry
     function addScore() {
         if (newScoreSelect.value && ['1', '2', '3', '4', '5'].includes(newScoreSelect.value) && 
-            feedingDateInput.value && feedingTimeSelect.value) {
+            feedingDateInput.value && feedingTimeSelect.value && patientMRNInput.value) {
             
             // Handle midnight case (00:00)
             let adjustedDate = feedingDateInput.value;
@@ -145,6 +183,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Save to local storage
             saveToLocalStorage();
+            
+            // Update patient dropdown in case this is a new patient
+            populatePatientDropdown();
         }
     }
 
@@ -369,39 +410,72 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Save to local storage
     function saveToLocalStorage() {
+        const mrn = patientMRNInput.value;
+        if (!mrn) return; // Don't save without an MRN
+        
         const data = {
             patientName: patientNameInput.value,
-            patientMRN: patientMRNInput.value,
+            patientMRN: mrn,
             readinessScores: readinessScores,
             thresholdMet: thresholdMet,
             thresholdMetTime: thresholdMetTime
         };
         
-        localStorage.setItem('idfData', JSON.stringify(data));
+        // Get existing patients list or create new one
+        let patientsList = JSON.parse(localStorage.getItem('idfPatientsList') || '[]');
+        if (!patientsList.includes(mrn)) {
+            patientsList.push(mrn);
+            localStorage.setItem('idfPatientsList', JSON.stringify(patientsList));
+        }
+        
+        // Save this patient's data
+        localStorage.setItem(`idfData_${mrn}`, JSON.stringify(data));
+        
+        // Update currentPatientMRN
+        currentPatientMRN = mrn;
     }
 
-    // Load from local storage
-    function loadFromLocalStorage() {
-        const storedData = localStorage.getItem('idfData');
+    // Populate patient dropdown
+    function populatePatientDropdown() {
+        const patientSelector = document.getElementById('patientSelector');
+        patientSelector.innerHTML = '<option value="">Select a patient</option>';
+        
+        const patientsList = JSON.parse(localStorage.getItem('idfPatientsList') || '[]');
+        
+        patientsList.forEach(mrn => {
+            const patientData = JSON.parse(localStorage.getItem(`idfData_${mrn}`));
+            if (patientData) {
+                const option = document.createElement('option');
+                option.value = mrn;
+                option.textContent = `${patientData.patientName || 'Unknown'} (${mrn})`;
+                patientSelector.appendChild(option);
+            }
+        });
+    }
+
+    // Load patient data
+    function loadPatientData(mrn) {
+        const storedData = localStorage.getItem(`idfData_${mrn}`);
         
         if (storedData) {
             const data = JSON.parse(storedData);
             
             patientNameInput.value = data.patientName || '';
-            patientMRNInput.value = data.patientMRN || '';
+            patientMRNInput.value = mrn;
             readinessScores = data.readinessScores || [];
             thresholdMet = data.thresholdMet || false;
             thresholdMetTime = data.thresholdMetTime ? new Date(data.thresholdMetTime) : null;
             
+            currentPatientMRN = mrn;
+            
             updateHistoryTable();
             updateStats();
+            updateAddButtonState();
         }
     }
 
-    // Listen for changes to patient info
-    patientNameInput.addEventListener('change', saveToLocalStorage);
-    patientMRNInput.addEventListener('change', saveToLocalStorage);
-
     // Load data on page load
-    loadFromLocalStorage();
+    if (currentPatientMRN) {
+        loadPatientData(currentPatientMRN);
+    }
 });
