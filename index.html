@@ -80,49 +80,21 @@
       </div>
     </div>
     
-    <!-- Add New Score -->
     <!-- Add New Readiness Score -->
-<div class="mb-6 p-4 bg-blue-50 rounded-lg">
-  <h2 class="text-xl font-semibold text-blue-700 mb-2">Add New Readiness Score</h2>
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Feeding Date:</label>
-      <input type="date" id="feedingDate" class="p-2 border rounded w-full">
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Base Feeding Start Time:</label>
-      <select id="baseFeedingTime" class="p-2 border rounded w-full">
-        <option value="08:00">8:00</option>
-        <option value="08:30">8:30</option>
-        <option value="09:00">9:00</option>
-      </select>
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Feeding Time:</label>
-      <select id="feedingTime" class="p-2 border rounded w-full"></select>
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Readiness Score:</label>
-      <select id="newScore" class="p-2 border rounded w-full">
-        <option value="">Select a score</option>
-        <option value="1">1 - Alert before care, sustained cues</option>
-        <option value="2">2 - Alert once handled, sustained cues</option>
-        <option value="3">3 - Alert state not sustained/no cues</option>
-        <option value="4">4 - Sleeping, no hunger cues</option>
-        <option value="5">5 - Physiologic compromise</option>
-      </select>
-    </div>
-  </div>
-  <button id="addScoreBtn" class="px-4 py-2 rounded bg-gray-300">
-    Add Assessment
-  </button>
-</div>
     <div class="mb-6 p-4 bg-blue-50 rounded-lg">
       <h2 class="text-xl font-semibold text-blue-700 mb-2">Add New Readiness Score</h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Feeding Date:</label>
           <input type="date" id="feedingDate" class="p-2 border rounded w-full">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Base Feeding Start Time:</label>
+          <select id="baseFeedingTime" class="p-2 border rounded w-full">
+            <option value="08:00">8:00</option>
+            <option value="08:30">8:30</option>
+            <option value="09:00">9:00</option>
+          </select>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Feeding Time:</label>
@@ -140,9 +112,7 @@
           </select>
         </div>
       </div>
-      <button id="addScoreBtn" class="px-4 py-2 rounded bg-gray-300">
-        Add Assessment
-      </button>
+      <button id="addScoreBtn" class="px-4 py-2 rounded bg-gray-300">Add Assessment</button>
     </div>
     
     <!-- Score History -->
