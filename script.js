@@ -185,14 +185,15 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log("Feeding date auto-filled on initial load:", feedingDateInput.value);
   }
 
-  // Remove old fixed feeding time options code, if present.
-  // Populate feedingTime select dynamically based on base feeding time
+  // --- Dynamic Feeding Time Functionality ---
+
+  // Generates an array of feeding times in 3-hour increments starting from the given base time.
   function generateFeedingTimes(startTimeStr) {
     const times = [];
     const [startHour, startMin] = startTimeStr.split(':').map(Number);
     const date = new Date();
     date.setHours(startHour, startMin, 0, 0);
-    // Generate 8 time slots (adjust if needed)
+    // Generate 8 time slots (adjust the count as needed)
     for (let i = 0; i < 8; i++) {
       const hours = date.getHours().toString().padStart(2, '0');
       const minutes = date.getMinutes().toString().padStart(2, '0');
@@ -202,13 +203,17 @@ document.addEventListener('DOMContentLoaded', function() {
     return times;
   }
 
+  // Populates the feedingTime dropdown based on the selected base feeding time.
   function populateFeedingTimeOptions() {
     const baseFeedingTimeSelect = document.getElementById('baseFeedingTime');
     const feedingTimeSelect = document.getElementById('feedingTime');
     const selectedBaseTime = baseFeedingTimeSelect.value;
     const times = generateFeedingTimes(selectedBaseTime);
     
+    // Clear existing options.
     feedingTimeSelect.innerHTML = "";
+    
+    // Create and append new options.
     times.forEach(time => {
       const option = document.createElement('option');
       option.value = time;
@@ -217,9 +222,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Initialize feeding time options on page load and when base feeding time changes.
+  // Initialize feeding time options on page load.
   populateFeedingTimeOptions();
+  // Update feeding time options when the base feeding time changes.
   document.getElementById('baseFeedingTime').addEventListener('change', populateFeedingTimeOptions);
+
+  // --- End Feeding Time Functionality ---
 
   // Function to add a new readiness score for the current patient
   function addNewScore() {
@@ -250,7 +258,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateHistoryTable();
         updateStats();
         alert("Assessment added successfully.");
-        // Reset the fields
+        // Reset the fields: update feeding date to today and reset dropdowns.
         feedingDateInput.value = new Date().toISOString().split('T')[0];
         feedingTimeSelect.selectedIndex = 0;
         newScoreSelect.selectedIndex = 0;
