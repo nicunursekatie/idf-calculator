@@ -42,15 +42,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add a row for each score
     readinessScores.forEach(scoreObj => {
       const row = document.createElement("tr");
-
       const dateCell = document.createElement("td");
       dateCell.className = "p-2";
       dateCell.textContent = new Date(scoreObj.timestamp).toLocaleString();
-
       const scoreCell = document.createElement("td");
       scoreCell.className = "p-2 text-center";
       scoreCell.textContent = scoreObj.score;
-
       row.appendChild(dateCell);
       row.appendChild(scoreCell);
       historyTableBody.appendChild(row);
@@ -63,7 +60,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const goodScoresEl = document.getElementById('goodScores');
     const percentGoodEl = document.getElementById('percentGood');
     if (!totalScoresEl || !goodScoresEl || !percentGoodEl) return;
-
     const total = readinessScores.length;
     const good = readinessScores.filter(scoreObj => scoreObj.score <= 2).length;
     totalScoresEl.textContent = total;
@@ -175,25 +171,55 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // ---------------------------
-  // Scoring Functionality Below
+  // Feeding Time and Scoring Functionality
   // ---------------------------
-
   const feedingDateInput = document.getElementById('feedingDate');
   const feedingTimeSelect = document.getElementById('feedingTime');
   const newScoreSelect = document.getElementById('newScore');
   const addScoreBtn = document.getElementById('addScoreBtn');
 
-  // Populate feedingTime select with example time options if not already populated
-  if (feedingTimeSelect) {
+  // Auto-fill feeding date with today's date on page load
+  if (feedingDateInput) {
+    const today = new Date().toISOString().split('T')[0];
+    feedingDateInput.value = today;
+    console.log("Feeding date auto-filled on initial load:", feedingDateInput.value);
+  }
+
+  // Remove old fixed feeding time options code, if present.
+  // Populate feedingTime select dynamically based on base feeding time
+  function generateFeedingTimes(startTimeStr) {
+    const times = [];
+    const [startHour, startMin] = startTimeStr.split(':').map(Number);
+    const date = new Date();
+    date.setHours(startHour, startMin, 0, 0);
+    // Generate 8 time slots (adjust if needed)
+    for (let i = 0; i < 8; i++) {
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      times.push(`${hours}:${minutes}`);
+      date.setHours(date.getHours() + 3);
+    }
+    return times;
+  }
+
+  function populateFeedingTimeOptions() {
+    const baseFeedingTimeSelect = document.getElementById('baseFeedingTime');
+    const feedingTimeSelect = document.getElementById('feedingTime');
+    const selectedBaseTime = baseFeedingTimeSelect.value;
+    const times = generateFeedingTimes(selectedBaseTime);
+    
     feedingTimeSelect.innerHTML = "";
-    const times = ["00:00", "06:00", "12:00", "18:00"];
     times.forEach(time => {
-      const option = document.createElement("option");
+      const option = document.createElement('option');
       option.value = time;
       option.textContent = time;
       feedingTimeSelect.appendChild(option);
     });
   }
+
+  // Initialize feeding time options on page load and when base feeding time changes.
+  populateFeedingTimeOptions();
+  document.getElementById('baseFeedingTime').addEventListener('change', populateFeedingTimeOptions);
 
   // Function to add a new readiness score for the current patient
   function addNewScore() {
@@ -224,7 +250,8 @@ document.addEventListener('DOMContentLoaded', function() {
         updateHistoryTable();
         updateStats();
         alert("Assessment added successfully.");
-        feedingDateInput.value = "";
+        // Reset the fields
+        feedingDateInput.value = new Date().toISOString().split('T')[0];
         feedingTimeSelect.selectedIndex = 0;
         newScoreSelect.selectedIndex = 0;
       } catch (e) {
@@ -239,5 +266,5 @@ document.addEventListener('DOMContentLoaded', function() {
     addScoreBtn.addEventListener('click', addNewScore);
   }
 
-  console.log("Unique Identifier version with scoring functionality initialized.");
+  console.log("Unique Identifier version with dynamic feeding time and scoring functionality initialized.");
 });
