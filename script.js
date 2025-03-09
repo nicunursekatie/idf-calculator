@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // ---------------------------
-  // Feeding Time and Scoring Functionality
+  // Hard-Coded Feeding Time Options & Scoring
   // ---------------------------
   const feedingDateInput = document.getElementById('feedingDate');
   const feedingTimeSelect = document.getElementById('feedingTime');
@@ -185,49 +185,27 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log("Feeding date auto-filled on initial load:", feedingDateInput.value);
   }
 
-  // --- Dynamic Feeding Time Functionality ---
-
-  // Generates an array of feeding times in 3-hour increments starting from the given base time.
-  function generateFeedingTimes(startTimeStr) {
-    const times = [];
-    const [startHour, startMin] = startTimeStr.split(':').map(Number);
-    const date = new Date();
-    date.setHours(startHour, startMin, 0, 0);
-    // Generate 8 time slots (adjust the count as needed)
-    for (let i = 0; i < 8; i++) {
-      const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = date.getMinutes().toString().padStart(2, '0');
-      times.push(`${hours}:${minutes}`);
-      date.setHours(date.getHours() + 3);
-    }
-    return times;
-  }
-
-  // Populates the feedingTime dropdown based on the selected base feeding time.
-  function populateFeedingTimeOptions() {
-    const baseFeedingTimeSelect = document.getElementById('baseFeedingTime');
-    const feedingTimeSelect = document.getElementById('feedingTime');
-    const selectedBaseTime = baseFeedingTimeSelect.value;
-    const times = generateFeedingTimes(selectedBaseTime);
-    
-    // Clear existing options.
+  // Replace old dynamic code with a fixed array of times
+  if (feedingTimeSelect) {
     feedingTimeSelect.innerHTML = "";
-    
-    // Create and append new options.
-    times.forEach(time => {
+    const fixedTimes = [
+      "8:00 AM", "8:30 AM", "9:00 AM",
+      "11:00 AM", "11:30 AM", "12:00 PM",
+      "2:00 PM", "2:30 PM", "3:00 PM",
+      "5:00 PM", "5:30 PM", "6:00 PM",
+      "8:00 PM", "8:30 PM", "9:00 PM",
+      "11:00 PM", "11:30 PM", "12:00 AM",
+      "2:00 AM", "2:30 AM", "3:00 AM",
+      "5:00 AM", "5:30 AM", "6:00 AM"
+    ];
+
+    fixedTimes.forEach(time => {
       const option = document.createElement('option');
       option.value = time;
       option.textContent = time;
       feedingTimeSelect.appendChild(option);
     });
   }
-
-  // Initialize feeding time options on page load.
-  populateFeedingTimeOptions();
-  // Update feeding time options when the base feeding time changes.
-  document.getElementById('baseFeedingTime').addEventListener('change', populateFeedingTimeOptions);
-
-  // --- End Feeding Time Functionality ---
 
   // Function to add a new readiness score for the current patient
   function addNewScore() {
@@ -242,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
       alert("Please fill in all the score fields.");
       return;
     }
-    const timestamp = new Date(`${feedingDate}T${feedingTime}`);
+    const timestamp = new Date(`${feedingDate} ${feedingTime}`);
     const scoreObj = {
       timestamp: timestamp.toISOString(),
       score: parseInt(score)
@@ -274,5 +252,5 @@ document.addEventListener('DOMContentLoaded', function() {
     addScoreBtn.addEventListener('click', addNewScore);
   }
 
-  console.log("Unique Identifier version with dynamic feeding time and scoring functionality initialized.");
+  console.log("Hard-coded feeding times version with scoring functionality initialized.");
 });
